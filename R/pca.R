@@ -15,6 +15,7 @@ pca.hic <- function(x, normPerExpected=TRUE, npc=2, asGRangesList=TRUE, gene.gr=
     
     xcor <- getPearsonMap(x, normPerExpected, ...)
     xdata.cor <- intdata(xcor)
+    xdata.cor <- as.matrix(xdata.cor)
     xgi <- x_intervals(x)
     
     ## remove NA if still there
@@ -27,7 +28,8 @@ pca.hic <- function(x, normPerExpected=TRUE, npc=2, asGRangesList=TRUE, gene.gr=
       pca.res <- NULL
     }
     else{
-      pca <- prcomp(xdata.cor, scale=TRUE)
+      xdata.cor <- as(xdata.cor, "matrix")
+      pca <- eigen(xdata.cor, symmetric = TRUE)
 
       ## Gene density
       if (!is.null(gene.gr)){
@@ -39,9 +41,9 @@ pca.hic <- function(x, normPerExpected=TRUE, npc=2, asGRangesList=TRUE, gene.gr=
       if (!asGRangesList){
         pca.res <- list()
         pscore <- rep(NA, length(xgi))
-        pca.res$varianceProp <- summary(pca)$importance[2,1:npc]
-        for (i in 1:npc){
-            pscore[idx] <- round(pca$rotation[,i],3)
+        pca.res$varianceProp <- pca$values[1:npc] / sum(pca$values)
+        for (i in 1:npc) {
+            pscore[idx] <- round(pca$vectors[ ,i], 3)
                        
             if (!is.null(gene.gr)){
               gd.pos <- sum(gene.density[which(pscore>=0)])
@@ -56,16 +58,16 @@ pca.hic <- function(x, normPerExpected=TRUE, npc=2, asGRangesList=TRUE, gene.gr=
                 cc <- ifelse(pscore<0, "A", "B")
                 pscore <- -pscore
               }
-              pca.res[[eval(paste("PC",i, sep=""))]] <- rbind(pscore, cc, gene.density)
+              pca.res[[eval(paste("PC", i, sep=""))]] <- rbind(pscore, cc, gene.density)
             }else{
-              pca.res[[eval(paste("PC",i, sep=""))]] <- pscore
+              pca.res[[eval(paste("PC", i, sep=""))]] <- pscore
             }
           }
       }else{
         pca.res <- GRangesList()      
-        for (i in 1:npc){
+        for (i in 1:npc) {
           pscore <- rep(NA, length(xgi))
-          pscore[idx] <- round(pca$rotation[,i],3)
+          pscore[idx] <- round(pca$vectors[ ,i], 3)
             
           if (!is.null(gene.gr)){
             gd.pos <- sum(gene.density[which(pscore>=0)])
